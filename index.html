@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alien Outpost: 180 Seconds</title>
+  <style>
+    :root { color-scheme: dark; --bg: #070b16; --panel: rgba(11, 18, 35, .88); --line: #253659; --cyan: #68e6ff; --lime: #b5ff83; --pink: #ff779e; --text: #e9f1ff; --muted: #9cafca; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: radial-gradient(circle at 50% 0%, #14244b 0, var(--bg) 52%); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { display: grid; place-items: center; padding: 20px; }
+    .wrap { width: min(100%, 1400px); }
+    header { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+    .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    .language-btn { padding: 6px 12px; background: #68e6ff; box-shadow: none; font-size: 12px; }
+    h1 { font-size: clamp(22px, 4vw, 34px); letter-spacing: .04em; margin: 0; }
+    .subtitle { color: var(--muted); margin: 4px 0 0; font-size: 13px; }
+    .stats { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .stat { min-width: 94px; padding: 8px 11px; border: 1px solid var(--line); background: var(--panel); border-radius: 10px; text-align: center; }
+    .stat small { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; }
+    .stat strong { display: block; font-size: 18px; color: var(--cyan); }
+    .stat.coins strong { color: #ffd36a; }
+    .game-shell { position: relative; overflow: hidden; border: 1px solid #30466f; border-radius: 16px; box-shadow: 0 20px 70px rgba(0,0,0,.35); background: #091126; }
+    .game-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 14px; align-items: start; }
+    canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; cursor: crosshair; background: #0a1225; }
+    .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 22px; background: rgba(5, 9, 20, .74); backdrop-filter: blur(4px); }
+    .card { width: min(500px, 100%); padding: 28px; border: 1px solid #3a5684; background: rgba(10, 18, 38, .95); border-radius: 16px; text-align: center; box-shadow: 0 16px 45px rgba(0,0,0,.32); }
+    .card h2 { margin: 0 0 8px; font-size: 28px; }
+    .card p { margin: 8px 0; color: var(--muted); line-height: 1.5; }
+    .instructions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: left; margin: 20px 0; }
+    .instructions div { border: 1px solid #26395d; border-radius: 9px; padding: 10px; color: #cedbfa; font-size: 13px; }
+    kbd { border: 1px solid #59709d; border-bottom-width: 2px; border-radius: 5px; padding: 1px 5px; color: var(--cyan); font-size: 11px; }
+    button { border: 0; border-radius: 9px; padding: 12px 22px; color: #07101d; background: var(--lime); font: inherit; font-weight: 800; cursor: pointer; box-shadow: 0 0 22px rgba(181,255,131,.22); }
+    button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .hidden { display: none; }
+    .upgrade-panel { position: relative; width: 270px; padding: 12px; border: 1px solid #80652c; border-radius: 11px; background: rgba(39, 30, 12, .94); box-shadow: 0 8px 25px rgba(0,0,0,.3); }
+    .shop-close { position: absolute; top: 3px; left: 4px; padding: 0; min-width: 17px; width: 17px; height: 17px; color: #f1dfb0; background: transparent; box-shadow: none; font-size: 13px; line-height: 16px; }
+    .shop-close:hover { color: #fff; background: rgba(255,255,255,.12); transform: none; }
+    .upgrade-panel strong { display: block; color: #ffd36a; font-size: 14px; }
+    .upgrade-panel span { display: block; color: #f1dfb0; font-size: 12px; margin: 4px 0 9px; }
+    .upgrade-panel button { width: 100%; padding: 8px 10px; background: #ffd36a; }
+    .upgrade-panel button + button { margin-top: 7px; background: #d79bff; }
+    .pause-btn { position: absolute; top: 12px; right: 12px; z-index: 3; padding: 7px 12px; min-width: 42px; background: rgba(18, 31, 58, .95); color: var(--cyan); border: 1px solid #49658f; box-shadow: none; }
+    .pause-btn:hover { background: #20365e; }
+    .action-row { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .action-row button + button { background: #68e6ff; }
+    .action-row button:nth-child(3) { background: #d79bff; }
+    .upgrade-panel button:disabled { cursor: not-allowed; opacity: .55; filter: none; }
+    footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 10px; color: var(--muted); font-size: 12px; }
+    .legend { display: flex; gap: 14px; } .legend span::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: currentColor; }
+    .legend .player { color: var(--cyan); } .legend .enemy { color: var(--pink); } .legend .battery { color: var(--lime); }
+    @media (max-width: 820px) { .game-layout { grid-template-columns: 1fr; } .upgrade-panel { width: 100%; } }
+    @media (max-width: 620px) { header { display: block; } .stats { margin-top: 10px; justify-content: flex-start; } .stat { min-width: 80px; } .card { padding: 22px 16px; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div><h1>ALIEN OUTPOST</h1><p class="subtitle">Hold the line. Gather the power cells. Survive the night.</p></div>
+      <div class="header-right">
+      <button class="language-btn" id="languageBtn">中文</button>
+      <div class="stats" aria-live="polite">
+        <div class="stat"><small id="timeLabel">Time left</small><strong id="time">3:00</strong></div>
+        <div class="stat"><small id="cellsLabel">Energy cells</small><strong id="cells">0 / 12</strong></div>
+        <div class="stat"><small id="scoreLabel">Score</small><strong id="score">0</strong></div>
+        <div class="stat coins"><small id="coinsLabel">Coins</small><strong id="coins">0</strong></div>
+      </div>
+      </div>
+    </header>
+    <div class="game-layout">
+    <section class="game-shell">
+      <canvas id="game" aria-label="Alien survival game"></canvas>
+      <button class="pause-btn hidden" id="pauseBtn" aria-label="暂停游戏">Ⅱ</button>
+      <div class="overlay" id="overlay">
+        <div class="card">
+          <h2 id="overlayTitle">Survive 180 seconds</h2>
+          <p id="overlayText">Collect 12 energy batteries while dodging the swarm. Defeat aliens for points.</p>
+          <div class="instructions">
+            <div id="moveInstruction"><kbd>ARROW KEYS</kbd> or <kbd>WASD</kbd><br>Move your explorer</div>
+            <div id="shootInstruction"><kbd>CLICK</kbd> or <kbd>SPACE</kbd><br>Fire toward your cursor</div>
+            <div id="specialInstruction">Every 30 seconds<br>Catch a random special item</div>
+            <div id="powerInstruction">❄ Freeze · ✦ Destroy · 🧲 Collect coins · ❤ +1000000000 HP</div>
+          </div>
+          <div class="action-row">
+            <button id="startBtn">Start mission</button>
+            <button class="hidden" id="endGameBtn">结束游戏</button>
+            <button class="hidden" id="endlessBtn">进入无尽模式</button>
+          </div>
+        </div>
+      </div>
+    </section>
+      <div class="upgrade-panel hidden" id="upgradePanel">
+        <button class="shop-close" id="shopCloseBtn" aria-label="关闭商店">×</button>
+        <strong id="shopTitle">⚙ Gun upgrade available</strong>
+        <span id="shopDesc">First upgrade: 2 damage. Second upgrade: bullets pierce one additional alien.</span>
+        <button id="upgradeBtn">Upgrade gun · 500 coins</button>
+        <button id="pickupBtn">Pickup range +20 · 20 coins</button>
+        <button id="shotRangeBtn">Shot range +5000 · 200 coins</button>
+        <button id="fireRateBtn">Fire rate ×2 · 300 coins</button>
+      </div>
+    </div>
+    <footer><span id="winHint">Win: survive the timer and collect every battery.</span><span class="legend"><span class="player" id="playerLegend">You</span><span class="enemy" id="enemyLegend">Aliens</span><span class="battery" id="batteryLegend">Batteries</span></span></footer>
+  </main>
+  <script>
+    const canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
+    const backgroundImage = new Image();
+    backgroundImage.src = 'space-background.png';
+    const languageBtn = document.getElementById('languageBtn'), timeEl = document.getElementById('time'), timeLabel = document.getElementById('timeLabel'), cellsEl = document.getElementById('cells'), scoreEl = document.getElementById('score'), coinsEl = document.getElementById('coins');
+    const overlay = document.getElementById('overlay'), overlayTitle = document.getElementById('overlayTitle'), overlayText = document.getElementById('overlayText'), startBtn = document.getElementById('startBtn'), endGameBtn = document.getElementById('endGameBtn'), endlessBtn = document.getElementById('endlessBtn'), pauseBtn = document.getElementById('pauseBtn');
+    const upgradePanel = document.getElementById('upgradePanel'), upgradeBtn = document.getElementById('upgradeBtn'), pickupBtn = document.getElementById('pickupBtn'), shotRangeBtn = document.getElementById('shotRangeBtn'), fireRateBtn = document.getElementById('fireRateBtn'), shopCloseBtn = document.getElementById('shopCloseBtn');
+    const TOTAL_TIME = 180, REQUIRED_CELLS = 12;
+    let language = 'en', overlayState = 'start', overlayReason = 'death';
+    let W = 960, H = 540, dpr = 1, running = false, paused = false, endlessMode = false, last = 0, elapsed = 0, score = 0, coins = 0, collected = 0, gunDamage = 1, gunUpgradeLevel = 0, pickupBonus = 0, shotRangeBonus = 0, fireRateMultiplier = 1, shopOpen = false, nextShopAt = 60, shopGunBought = false, shopPickupBought = false, shopRangeBought = false, shopFireBought = false, spawnClock = 0, batteryClock = 0, specialClock = 30, shake = 0;
+    const keys = {}, bullets = [], enemies = [], batteries = [], specialItems = [], coinDrops = [], sparks = [];
+    const mouse = { x: W / 2 + 100, y: H / 2, down: false };
+    const player = { x: W / 2, y: H / 2, r: 15, speed: 245, hp: 100, fire: 0, angle: 0 };
+
+    const languageText = {
+      en: { title:'ALIEN OUTPOST', subtitle:'Hold the line. Gather the power cells. Survive the night.', timeLeft:'Time left', elapsed:'Elapsed time', cells:'Energy cells', score:'Score', coins:'Coins', start:'Start mission', resume:'Resume game', endGame:'End game', endless:'Enter endless mode', startTitle:'Survive 180 seconds', startText:'Collect 12 energy batteries while dodging the swarm. Defeat aliens for points.', pauseTitle:'Game paused', pauseText:'Click resume to return to the battlefield.', winTitle:'Mission complete!', winText:'You held the outpost for three minutes and powered every emergency beacon.', deathText:'The swarm breached your shields. Collect more batteries and keep moving.', missingText:'Time is up, but some batteries are still missing. Keep exploring next run.', move:'<kbd>ARROW KEYS</kbd> or <kbd>WASD</kbd><br>Move your explorer', shoot:'<kbd>CLICK</kbd> or <kbd>SPACE</kbd><br>Fire toward your cursor', special:'Every 30 seconds<br>Catch a random special item', power:'❄ Freeze · ✦ Destroy · 🧲 Collect coins · ❤ +1000000000 HP', shopTitle:'⚙ Gun upgrade available', shopDesc:'First upgrade: 2 damage. Second upgrade: bullets pierce one additional alien.', gun:'Upgrade gun · 500 coins', pickup:'Pickup range +20 · 20 coins', range:'Shot range +5000 · 200 coins', fire:'Fire rate ×2 · 300 coins', winHint:'Win: survive the timer and collect every battery.', you:'You', aliens:'Aliens', batteries:'Batteries' },
+      zh: { title:'外星人前哨站', subtitle:'守住阵地，收集能量电池，活过这场黑夜。', timeLeft:'剩余时间', elapsed:'已用时间', cells:'能量电池', score:'分数', coins:'金币', start:'开始任务', resume:'继续游戏', endGame:'结束游戏', endless:'进入无尽模式', startTitle:'坚持 180 秒', startText:'躲避敌人并收集 12 个能量电池，消灭敌人获取分数。', pauseTitle:'游戏已暂停', pauseText:'点击继续游戏返回战场。', winTitle:'任务完成！', winText:'你守住了前哨站三分钟，并启动了所有紧急信标。', deathText:'敌人突破了你的防御。收集更多电池并保持移动。', missingText:'时间到了，但还有电池没有收集完。下次继续探索吧。', move:'<kbd>方向键</kbd> 或 <kbd>WASD</kbd><br>移动探索者', shoot:'<kbd>点击</kbd> 或 <kbd>空格</kbd><br>朝鼠标方向射击', special:'每 30 秒<br>接近并拾取随机特殊道具', power:'❄ 冰冻 · ✦ 清场 · 🧲 吸取金币 · ❤ +1000000000 生命', shopTitle:'⚙ 枪械升级商店', shopDesc:'第一次升级：2 点伤害。第二次升级：子弹可穿透并击杀额外敌人。', gun:'升级枪械 · 500 金币', pickup:'拾取范围 +20 · 20 金币', range:'射程 +5000 · 200 金币', fire:'射速 ×2 · 300 金币', winHint:'胜利条件：坚持到计时结束并收集全部电池。', you:'玩家', aliens:'敌人', batteries:'电池' }
+    };
+    function text(key) { return languageText[language][key]; }
+    function renderOverlay() { const title=overlayState==='pause'?text('pauseTitle'):overlayState==='win'?text('winTitle'):overlayState==='loss'?'Outpost lost':text('startTitle'); const body=overlayState==='pause'?text('pauseText'):overlayState==='win'?text('winText'):overlayState==='loss'?(overlayReason==='missing'?text('missingText'):text('deathText')):text('startText'); overlayTitle.textContent=language==='zh'&&overlayState==='loss'?'前哨站失守':title; overlayText.textContent=body; }
+    function applyLanguage() { document.documentElement.lang=language; languageBtn.textContent=language==='en'?'中文':'English'; document.querySelector('h1').textContent=text('title'); document.querySelector('.subtitle').textContent=text('subtitle'); document.getElementById('cellsLabel').textContent=text('cells'); document.getElementById('scoreLabel').textContent=text('score'); document.getElementById('coinsLabel').textContent=text('coins'); document.getElementById('moveInstruction').innerHTML=text('move'); document.getElementById('shootInstruction').innerHTML=text('shoot'); document.getElementById('specialInstruction').innerHTML=text('special'); document.getElementById('powerInstruction').innerHTML=text('power'); document.getElementById('shopTitle').textContent=text('shopTitle'); document.getElementById('shopDesc').textContent=text('shopDesc'); upgradeBtn.textContent=text('gun'); pickupBtn.textContent=text('pickup'); shotRangeBtn.textContent=text('range'); fireRateBtn.textContent=text('fire'); document.getElementById('winHint').textContent=text('winHint'); document.getElementById('playerLegend').textContent=text('you'); document.getElementById('enemyLegend').textContent=text('aliens'); document.getElementById('batteryLegend').textContent=text('batteries'); startBtn.textContent=paused?text('resume'):text('start'); endGameBtn.textContent=text('endGame'); endlessBtn.textContent=text('endless'); timeLabel.textContent=endlessMode?text('elapsed'):text('timeLeft'); pauseBtn.setAttribute('aria-label',language==='zh'?'暂停游戏':'Pause game'); shopCloseBtn.setAttribute('aria-label',language==='zh'?'关闭商店':'Close shop'); renderOverlay(); }
+    languageBtn.addEventListener('click', () => { language=language==='en'?'zh':'en'; applyLanguage(); updateHud(); });
+
+    function resize() { const rect = canvas.getBoundingClientRect(); dpr = Math.min(devicePixelRatio || 1, 2); canvas.width = rect.width * dpr; canvas.height = rect.height * dpr; W = rect.width; H = rect.height; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); if (!running) draw(); }
+    backgroundImage.onload = () => { if (!running) draw(); };
+    addEventListener('resize', resize);
+    function pointer(e) { const r = canvas.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top; }
+    canvas.addEventListener('pointermove', pointer); canvas.addEventListener('pointerdown', e => { pointer(e); mouse.down = true; canvas.setPointerCapture(e.pointerId); }); canvas.addEventListener('pointerup', () => mouse.down = false); canvas.addEventListener('pointerleave', () => mouse.down = false);
+    function clearMovementKeys() { ['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].forEach(key => { keys[key] = false; }); }
+    addEventListener('keydown', e => { const key=e.key.toLowerCase(); if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(key)) e.preventDefault(); keys[key] = true; if (e.key === ' ') { e.preventDefault(); mouse.down = true; } });
+    addEventListener('keyup', e => { const key=e.key.toLowerCase(); keys[key] = false; if (e.key === ' ') mouse.down = false; });
+    addEventListener('blur', clearMovementKeys);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { clearMovementKeys(); mouse.down = false; } });
+    function reset() { clearMovementKeys(); elapsed = 0; score = 0; coins = 0; collected = 0; gunDamage = 1; gunUpgradeLevel = 0; pickupBonus = 0; shotRangeBonus = 0; fireRateMultiplier = 1; shopOpen = false; nextShopAt = 60; shopGunBought = false; shopPickupBought = false; shopRangeBought = false; shopFireBought = false; spawnClock = 0; batteryClock = 0; specialClock = 30; player.x = W/2; player.y = H/2; player.health = 100; player.shield = 0; bullets.length = enemies.length = batteries.length = specialItems.length = coinDrops.length = sparks.length = 0; upgradePanel.classList.add('hidden'); for (let i=0;i<4;i++) addBattery(); updateHud(); }
+    function setEndActions(show) { startBtn.classList.toggle('hidden', show); endGameBtn.classList.toggle('hidden', !show); endlessBtn.classList.toggle('hidden', !show); }
+    function start() { reset(); paused = false; endlessMode = false; overlayState='start'; setEndActions(false); pauseBtn.classList.remove('hidden'); running = true; overlay.classList.add('hidden'); last = performance.now(); requestAnimationFrame(loop); }
+    function end(win, reason, allowEndless=true, reasonKey='death') { running = false; paused = false; shopOpen = false; overlayState=win?'win':'loss'; overlayReason=reasonKey; upgradePanel.classList.add('hidden'); pauseBtn.classList.add('hidden'); renderOverlay(); setEndActions(true); endlessBtn.classList.toggle('hidden', !allowEndless); overlay.classList.remove('hidden'); }
+    startBtn.addEventListener('click', () => { if (paused) { paused=false; running=true; overlayState='start'; overlay.classList.add('hidden'); pauseBtn.classList.remove('hidden'); last=performance.now(); applyLanguage(); requestAnimationFrame(loop); } else { start(); } });
+    endGameBtn.addEventListener('click', () => { running = false; paused = false; endlessMode = false; overlayState='start'; setEndActions(false); applyLanguage(); overlay.classList.remove('hidden'); });
+    endlessBtn.addEventListener('click', () => { endlessMode = true; paused = false; running = true; player.health = Math.max(100, player.health); setEndActions(false); pauseBtn.classList.remove('hidden'); overlay.classList.add('hidden'); last = performance.now(); requestAnimationFrame(loop); });
+    pauseBtn.addEventListener('click', () => { if (!running) return; clearMovementKeys(); mouse.down = false; running = false; paused = true; overlayState='pause'; pauseBtn.classList.add('hidden'); setEndActions(false); renderOverlay(); applyLanguage(); overlay.classList.remove('hidden'); });
+    shopCloseBtn.addEventListener('click', () => { if (shopOpen) { shopOpen=false; upgradePanel.classList.add('hidden'); } });
+    upgradeBtn.addEventListener('click', () => { if (shopOpen && !shopGunBought && coins >= 500) { coins -= 500; gunUpgradeLevel++; gunDamage = Math.max(2, gunDamage + 1); shopGunBought = true; shopOpen = false; upgradePanel.classList.add('hidden'); updateHud(); } });
+    pickupBtn.addEventListener('click', () => { if (shopOpen && !shopPickupBought && coins >= 20) { coins -= 20; pickupBonus += 20; shopPickupBought = true; shopOpen = false; upgradePanel.classList.add('hidden'); updateHud(); } });
+    shotRangeBtn.addEventListener('click', () => { if (shopOpen && !shopRangeBought && coins >= 200) { coins -= 200; shotRangeBonus += 5000; shopRangeBought = true; shopOpen = false; upgradePanel.classList.add('hidden'); updateHud(); } });
+    fireRateBtn.addEventListener('click', () => { if (shopOpen && !shopFireBought && coins >= 300) { coins -= 300; fireRateMultiplier *= 2; shopFireBought = true; shopOpen = false; upgradePanel.classList.add('hidden'); updateHud(); } });
+    function randomEdge() { const side = Math.floor(Math.random()*4); return side===0 ? {x:-30,y:Math.random()*H} : side===1 ? {x:W+30,y:Math.random()*H} : side===2 ? {x:Math.random()*W,y:-30} : {x:Math.random()*W,y:H+30}; }
+    function addEnemy() { const p=randomEdge(); enemies.push({x:p.x,y:p.y,r:Math.random()*5+10,speed:42+Math.random()*34+elapsed*.07,hp:2,frozen:false,angle:Math.random()*Math.PI*2}); }
+    function addBattery() { batteries.push({x:45+Math.random()*(W-90),y:45+Math.random()*(H-90),r:11,pulse:Math.random()*7}); }
+    function addSpecialItem() { const roll=Math.random(); specialItems.push({x:55+Math.random()*(W-110),y:55+Math.random()*(H-110),r:14,pulse:Math.random()*7,type:roll<.1667?'freeze':roll<.3333?'blast':roll<.5?'magnet':'heal'}); }
+    function addHealth(amount) { const healed=Math.min(100-player.health, amount); player.health+=healed; player.shield+=amount-healed; }
+    function takeDamage(amount) { const absorbed=Math.min(player.shield, amount); player.shield-=absorbed; player.health-=amount-absorbed; return player.health<=0; }
+    function addCoins(x,y) { for(let i=0;i<5;i++){ const a=Math.random()*Math.PI*2, d=8+Math.random()*18; coinDrops.push({x:x+Math.cos(a)*d,y:y+Math.sin(a)*d,r:7,pulse:Math.random()*7}); } }
+    function burst(x,y,color,n=8) { for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, s=30+Math.random()*120; sparks.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.5+Math.random()*.5,color}); } }
+    function shoot() { const a=Math.atan2(mouse.y-player.y, mouse.x-player.x); player.angle=a; bullets.push({x:player.x+Math.cos(a)*20,y:player.y+Math.sin(a)*20,vx:Math.cos(a)*620,vy:Math.sin(a)*620,life:(500+shotRangeBonus)/620,damage:gunDamage,piercing:gunUpgradeLevel>=2,hitEnemies:new Set()}); player.fire=.15/fireRateMultiplier; burst(player.x+Math.cos(a)*21,player.y+Math.sin(a)*21,'#b9f9ff',2); }
+    function dist(a,b) { return Math.hypot(a.x-b.x,a.y-b.y); }
+    function update(dt) {
+      elapsed += dt; spawnClock -= dt; batteryClock -= dt; specialClock -= dt; shake = Math.max(0, shake-dt*3);
+      if (spawnClock<=0) { addEnemy(); spawnClock = elapsed<30 ? 2.4 : Math.max(.32, 1.2-elapsed/190); }
+      if (batteryClock<=0 && batteries.length<4+Math.floor(elapsed/35) && collected<REQUIRED_CELLS) { addBattery(); batteryClock=3.2; }
+      if (specialClock<=0) { addSpecialItem(); specialClock=30; }
+      if (!shopOpen && elapsed>=nextShopAt && (endlessMode || nextShopAt<=TOTAL_TIME)) { shopOpen=true; shopGunBought=false; shopPickupBought=false; shopRangeBought=false; shopFireBought=false; nextShopAt+=60; upgradePanel.classList.remove('hidden'); }
+      if (shopOpen) { upgradeBtn.disabled = shopGunBought || coins<500; pickupBtn.disabled = shopPickupBought || coins<20; shotRangeBtn.disabled = shopRangeBought || coins<200; fireRateBtn.disabled = shopFireBought || coins<300; }
+      let dx=(keys['arrowright']||keys['d']?1:0)-(keys['arrowleft']||keys['a']?1:0), dy=(keys['arrowdown']||keys['s']?1:0)-(keys['arrowup']||keys['w']?1:0); const len=Math.hypot(dx,dy)||1; player.x=Math.max(22,Math.min(W-22,player.x+dx/len*player.speed*dt)); player.y=Math.max(22,Math.min(H-22,player.y+dy/len*player.speed*dt)); player.angle=Math.atan2(mouse.y-player.y,mouse.x-player.x); player.fire-=dt; if(mouse.down&&player.fire<=0) shoot();
+      bullets.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.x<0)b.x+=W;else if(b.x>W)b.x-=W;if(b.y<0)b.y+=H;else if(b.y>H)b.y-=H;});
+      for(let i=bullets.length-1;i>=0;i--) if(bullets[i].life<=0) bullets.splice(i,1);
+      enemies.forEach(e=>{ if(!e.frozen){ const a=Math.atan2(player.y-e.y,player.x-e.x); e.angle=a; e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt; } });
+      for(let i=enemies.length-1;i>=0;i--){ const e=enemies[i]; if(!e.frozen && dist(e,player)<e.r+player.r){ if(takeDamage(28*dt)){end(false,'The swarm breached your shields. Collect more batteries and keep moving.',false,'death');return;} burst(player.x,player.y,'#ff779e',1); } for(let j=bullets.length-1;j>=0;j--){ const bullet=bullets[j]; if(dist(e,bullet)<e.r+4 && !bullet.hitEnemies.has(e)){ bullet.hitEnemies.add(e); e.hp-=bullet.damage; burst(e.x,e.y,'#ff779e',6); if(e.hp<=0){score+=100;addCoins(e.x,e.y);enemies.splice(i,1);break;} if(!bullet.piercing){bullets.splice(j,1);break;} } }
+      }
+      for(let i=batteries.length-1;i>=0;i--) if(dist(batteries[i],player)<batteries[i].r+player.r+pickupBonus){ collected++; score+=50; addHealth(25); burst(batteries[i].x,batteries[i].y,'#b5ff83',12); batteries.splice(i,1); }
+      for(let i=coinDrops.length-1;i>=0;i--) if(dist(coinDrops[i],player)<coinDrops[i].r+player.r+pickupBonus){ coins++; score+=10; burst(coinDrops[i].x,coinDrops[i].y,'#ffd36a',4); coinDrops.splice(i,1); }
+      for(let i=specialItems.length-1;i>=0;i--) if(dist(specialItems[i],player)<specialItems[i].r+player.r+pickupBonus){ const item=specialItems[i]; const color=item.type==='freeze'?'#9fd9ff':item.type==='blast'?'#ffd36a':item.type==='magnet'?'#d79bff':'#ff9f68'; score+=150; burst(item.x,item.y,color,18); if(item.type==='freeze'){ enemies.forEach(e=>e.frozen=true); } else if(item.type==='blast'){ enemies.forEach(e=>{ burst(e.x,e.y,'#ffd36a',6); addCoins(e.x,e.y); score+=100; }); enemies.length=0; } else if(item.type==='magnet'){ coinDrops.forEach(c=>{ burst(c.x,c.y,'#d79bff',3); }); coins+=coinDrops.length; score+=coinDrops.length*10; coinDrops.length=0; } else { addHealth(1000000000); } specialItems.splice(i,1); }
+      sparks.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;s.vx*=.96;s.vy*=.96;}); for(let i=sparks.length-1;i>=0;i--) if(sparks[i].life<=0) sparks.splice(i,1);
+      if(!endlessMode && elapsed>=TOTAL_TIME && collected>=REQUIRED_CELLS) end(true,'You held the outpost for three minutes and powered every emergency beacon.',true,'win'); else if(!endlessMode && elapsed>=TOTAL_TIME) end(false,'Time is up, but some batteries are still missing. Keep exploring next run.',true,'missing'); updateHud();
+    }
+    function updateHud(){ const remain=Math.max(0,TOTAL_TIME-elapsed), remainingMinutes=Math.floor(remain/60), remainingSeconds=Math.floor(remain%60), elapsedMinutes=Math.floor(elapsed/60), elapsedSeconds=Math.floor(elapsed%60), timerText=endlessMode?`${elapsedMinutes}:${String(elapsedSeconds).padStart(2,'0')}`:`${remainingMinutes}:${String(remainingSeconds).padStart(2,'0')}`; timeLabel.textContent=endlessMode?text('elapsed'):text('timeLeft'); timeEl.textContent=timerText; cellsEl.textContent=`${collected} / ${REQUIRED_CELLS}`; scoreEl.textContent=score; coinsEl.textContent=coins; if(shopOpen){ upgradeBtn.disabled=shopGunBought || coins<500; pickupBtn.disabled=shopPickupBought || coins<20; shotRangeBtn.disabled=shopRangeBought || coins<200; fireRateBtn.disabled=shopFireBought || coins<300; } }
+    function draw(){ ctx.clearRect(0,0,W,H); if(backgroundImage.complete && backgroundImage.naturalWidth){ ctx.drawImage(backgroundImage,0,0,W,H); ctx.fillStyle='rgba(4,8,22,.34)'; ctx.fillRect(0,0,W,H); } else { ctx.fillStyle='#0a1225';ctx.fillRect(0,0,W,H); } ctx.save(); if(shake) ctx.translate((Math.random()-.5)*shake*5,(Math.random()-.5)*shake*5);
+      ctx.strokeStyle='rgba(103,143,205,.10)';ctx.lineWidth=1; for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();} for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+      batteries.forEach(b=>{const p=1+Math.sin(performance.now()/260+b.pulse)*.12;ctx.save();ctx.translate(b.x,b.y);ctx.scale(p,p);ctx.shadowBlur=18;ctx.shadowColor='#b5ff83';ctx.fillStyle='#b5ff83';ctx.fillRect(-7,-11,14,22);ctx.fillStyle='#13231d';ctx.fillRect(-2,-6,4,12);ctx.fillStyle='#eaffd9';ctx.fillRect(-4,-2,8,4);ctx.restore();});
+      coinDrops.forEach(c=>{const p=1+Math.sin(performance.now()/220+c.pulse)*.1;ctx.save();ctx.translate(c.x,c.y);ctx.scale(p,p);ctx.shadowBlur=12;ctx.shadowColor='#ffd36a';ctx.fillStyle='#ffd36a';ctx.beginPath();ctx.arc(0,0,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#6b4c13';ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('$',0,1);ctx.restore();});
+      specialItems.forEach(item=>{const p=1+Math.sin(performance.now()/220+item.pulse)*.14;const color=item.type==='freeze'?'#9fd9ff':item.type==='blast'?'#ffd36a':item.type==='magnet'?'#d79bff':'#ff9f68';const icon=item.type==='freeze'?'❄':item.type==='blast'?'✦':item.type==='magnet'?'🧲':'❤';ctx.save();ctx.translate(item.x,item.y);ctx.scale(p,p);ctx.shadowBlur=22;ctx.shadowColor=color;ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,13,0,Math.PI*2);ctx.stroke();ctx.fillStyle=color;ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(icon,0,1);ctx.restore();});
+      bullets.forEach(b=>{ctx.fillStyle='#c5f8ff';ctx.shadowBlur=8;ctx.shadowColor='#68e6ff';ctx.beginPath();ctx.arc(b.x,b.y,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;});
+      enemies.forEach(e=>{ctx.save();ctx.translate(e.x,e.y);ctx.rotate(e.angle);ctx.fillStyle=e.frozen?'#9fd9ff':'#ff779e';ctx.shadowBlur=15;ctx.shadowColor=e.frozen?'#6ab7ff':'#ff416e';ctx.beginPath();ctx.moveTo(e.r+5,0);ctx.lineTo(-e.r,-e.r*.85);ctx.lineTo(-e.r*.5,0);ctx.lineTo(-e.r,e.r*.85);ctx.closePath();ctx.fill();ctx.fillStyle=e.frozen?'#183557':'#2a1029';ctx.beginPath();ctx.arc(2,-3,2.5,0,Math.PI*2);ctx.arc(2,3,2.5,0,Math.PI*2);ctx.fill();if(e.frozen){ctx.strokeStyle='#d6f4ff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,e.r+5,0,Math.PI*2);ctx.stroke();}ctx.restore();});
+      ctx.save();ctx.translate(player.x,player.y);ctx.rotate(player.angle);ctx.shadowBlur=18;ctx.shadowColor='#68e6ff';ctx.fillStyle='#68e6ff';ctx.beginPath();ctx.moveTo(20,0);ctx.lineTo(-11,-12);ctx.lineTo(-7,0);ctx.lineTo(-11,12);ctx.closePath();ctx.fill();ctx.fillStyle='#13243b';ctx.beginPath();ctx.arc(0,0,7,0,Math.PI*2);ctx.fill();ctx.restore();
+      sparks.forEach(s=>{ctx.globalAlpha=Math.max(0,s.life);ctx.fillStyle=s.color;ctx.fillRect(s.x,s.y,3,3);});ctx.globalAlpha=1; ctx.restore();
+      if(running){ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(14,50,118,8);ctx.fillStyle=player.health>35?'#b5ff83':'#ff779e';ctx.fillRect(14,50,118*Math.max(0,player.health/100),8);ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(14,64,118,6);ctx.fillStyle='#68e6ff';ctx.fillRect(14,64,118*Math.min(1,Math.max(0,player.shield/100)),6);ctx.fillStyle='#c5d5ee';ctx.font='11px system-ui';ctx.fillText(language==='zh'?`生命 ${Math.ceil(player.health)}  护盾 ${Math.ceil(player.shield)}`:`HP ${Math.ceil(player.health)}  SHIELD ${Math.ceil(player.shield)}`,14,84);}
+    }
+    function loop(now){ if(!running){draw();return;} const dt=Math.min(.033,(now-last)/1000);last=now;update(dt);draw();if(running)requestAnimationFrame(loop); }
+    resize(); reset(); applyLanguage(); draw();
+  </script>
+</body>
+</html>
